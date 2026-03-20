@@ -2,86 +2,88 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>班级广播站</title>
     <style>
-        body { background-color: #000; color: #fff; height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: "微软雅黑"; overflow: hidden; }
-        
-        /* 启动按钮样式 */
-        #start-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        #start-btn { padding: 20px 40px; font-size: 24px; background: #27ae60; color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 0 20px #27ae60; animation: pulse 2s infinite; }
-        
-        h1 { color: #555; font-size: 24px; margin-bottom: 30px; }
-        #msg-box { font-size: 80px; font-weight: bold; text-align: center; color: #e74c3c; padding: 40px; border: 4px dashed #333; border-radius: 20px; width: 80%; min-height: 200px; display: flex; align-items: center; justify-content: center; transition: all 0.5s; }
-
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        body { background-color: #000; color: #fff; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: "微软雅黑"; overflow: hidden; margin: 0; }
+        #start-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        #start-btn { padding: 20px 40px; font-size: 24px; background: #27ae60; color: white; border: none; border-radius: 50px; cursor: pointer; }
+        #msg-box { font-size: 60px; font-weight: bold; text-align: center; color: #e74c3c; width: 80%; }
+        #status-bar { position: fixed; bottom: 10px; color: #555; font-size: 14px; }
     </style>
 </head>
 <body>
-
-    <!-- 遮罩层：必须点击才能开启语音 -->
+    <!-- 启动遮罩 -->
     <div id="start-mask">
-        <button id="start-btn" onclick="initAudio()">👉 点击开启班级广播系统 👈</button>
-        <p style="margin-top:20px; color:#ccc;">(浏览器规定：必须点击一次才能自动朗读)</p>
+        <button id="start-btn" onclick="initSystem()">🔴 点我开启班级广播</button>
+        <p style="margin-top:20px; color:#aaa;">(必须点击一次，浏览器才允许发声)</p>
     </div>
 
-    <h1>📡 班级实时广播系统</h1>
+    <h1>📡 班级接收端</h1>
     <div id="msg-box">等待指令...</div>
+    <div id="status-bar">系统状态：初始化中...</div>
 
     <script src="https://cdn.goeasy.io/goeasy-2.11.14.min.js"></script>
     <script>
-        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-        // 这里的 Key 必须和 teacher.html 里的一模一样！
-        const myAppKey = "BC-c1aecb7f420643f08afaccb0efc68962"; 
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        // ★★★ 你的 Key 已经填好 ★★★
+        const myAppKey = "BC-c1aecb7f420643f08afaccb0efc68962";
+        
+        // ★★★ 同样，如果不成功，请检查这里是不是 hangzhou.goeasy.io ★★★
+        const myHost = "hangzhou.goeasy.io";
 
-        const goEasy = GoEasy.getInstance({
-            host: "hangzhou.goeasy.io", 
-            appkey: myAppKey
-        });
-
-        // 语音合成变量
+        const goEasy = GoEasy.getInstance({ host: myHost, appkey: myAppKey });
         const synth = window.speechSynthesis;
-        let isAudioReady = false;
+        let isReady = false;
 
-        function initAudio() {
-            // 点击后隐藏遮罩，并尝试发声
+        function initSystem() {
             document.getElementById('start-mask').style.display = 'none';
-            isAudioReady = true;
-            speak("广播系统已启动，连接正常。");
-            document.getElementById('msg-box').innerText = "系统就绪";
-            document.getElementById('msg-box').style.borderColor = "#27ae60";
+            isReady = true;
+            // 尝试连接
+            connectGoEasy();
+            // 尝试发声
+            speak("系统启动成功");
         }
 
-        goEasy.connect({ onSuccess: function () { console.log("连接成功"); } });
+        function connectGoEasy() {
+            document.getElementById('status-bar').innerText = "正在连接 GoEasy 服务器...";
+            goEasy.connect({
+                onSuccess: function () {
+                    document.getElementById('status-bar').innerText = "✅ 连接成功 | 频道: class_6_channel_v2";
+                    document.getElementById('msg-box').innerText = "系统就绪";
+                    document.getElementById('msg-box').style.color = "#27ae60";
+                },
+                onFailed: function (error) {
+                    document.getElementById('status-bar').innerText = "❌ 连接失败: " + error.content;
+                    alert("连接失败！请检查网络或 Key 区域配置。\n错误信息: " + error.content);
+                }
+            });
+        }
 
         goEasy.sub({
-            channel: "class_6_radio",
+            channel: "class_6_channel_v2",
             onMessage: function (message) {
                 const text = message.content;
-                
-                // 1. 视觉效果：文字变大，闪烁
                 const box = document.getElementById('msg-box');
+                
+                // 显示文字
                 box.innerText = text;
                 box.style.color = "#fff";
-                box.style.background = "#e74c3c"; // 红色背景提醒
+                box.style.background = "#c0392b";
                 
                 setTimeout(() => {
                     box.style.color = "#e74c3c";
                     box.style.background = "transparent";
-                }, 1000);
+                }, 3000);
 
-                // 2. 朗读
+                // 朗读
                 speak(text);
             }
         });
 
-        function speak(content) {
-            if (!isAudioReady) return;
-            synth.cancel(); // 打断上一句，直接说新的
-            const u = new SpeechSynthesisUtterance(content);
-            u.lang = 'zh-CN'; 
-            u.rate = 1.0; 
+        function speak(text) {
+            if(!isReady) return;
+            synth.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'zh-CN';
             synth.speak(u);
         }
     </script>
