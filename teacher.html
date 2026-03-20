@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班主任呼叫台</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; text-align: center; background-color: #f4f4f4; }
+        h1 { color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input { width: 80%; padding: 15px; font-size: 18px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        button { width: 100%; padding: 15px; font-size: 18px; color: white; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 10px; transition: background 0.3s; }
+        .btn-call { background-color: #3498db; }
+        .btn-call:active { background-color: #2980b9; }
+        .btn-quiet { background-color: #e74c3c; }
+        #status { margin-top: 15px; color: #888; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📢 班级呼叫中心</h1>
+        
+        <input type="text" id="stuName" placeholder="输入学生姓名 (例如: 张三)">
+        
+        <button class="btn-call" onclick="sendMsg('call')">叫到来办公室</button>
+        <button class="btn-quiet" onclick="sendMsg('quiet')">🤫 维持纪律 (全班安静)</button>
+        <button class="btn-call" style="background-color:#2ecc71" onclick="sendMsg('praise')">👍 表扬全班</button>
+
+        <div id="status">正在连接服务器...</div>
+    </div>
+
+    <script src="https://cdn.goeasy.io/goeasy-2.11.14.min.js"></script>
+    <script>
+        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+        // 请把下面冒号里的内容换成你在官网复制的 Common Key
+        const myAppKey = "BC-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; 
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+        const goEasy = GoEasy.getInstance({
+            host: "hangzhou.goeasy.io", 
+            appkey: myAppKey
+        });
+
+        goEasy.connect({
+            onSuccess: function () { document.getElementById('status').innerText = "✅ 已连接，随时可发送"; },
+            onFailed: function (error) { document.getElementById('status').innerText = "❌ 连接失败: " + error.content; }
+        });
+
+        function sendMsg(type) {
+            const name = document.getElementById('stuName').value;
+            let text = "";
+
+            if (type === 'call') {
+                if (!name) { alert("请输入名字！"); return; }
+                text = `请 ${name} 同学，马上到班主任办公室。`;
+            } else if (type === 'quiet') {
+                text = "全班安静！请保持纪律，不要喧哗。";
+            } else if (type === 'praise') {
+                text = "全班表现很好，提出表扬，请继续保持。";
+            }
+
+            goEasy.pub({
+                channel: "class_6_radio", // 频道名称
+                message: text,
+                onSuccess: function () {
+                    alert("发送成功！\n内容：" + text);
+                    if(type === 'call') document.getElementById('stuName').value = ''; 
+                },
+                onFailed: function (error) { alert("发送失败: " + error.content); }
+            });
+        }
+    </script>
+</body>
+</html>
